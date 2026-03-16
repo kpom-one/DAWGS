@@ -180,8 +180,8 @@ func (e *Env) DeleteEdges(n int) {
 	e.EdgeIDs = e.EdgeIDs[n:]
 }
 
-// Snapshot records the current time as a temporal snapshot point.
-func (e *Env) Snapshot() time.Time {
+// Mark returns the current time for use as a temporal query point.
+func (e *Env) Mark() time.Time {
 	t := time.Now()
 	time.Sleep(50 * time.Millisecond) // ensure timestamp separation
 	return t
@@ -213,11 +213,11 @@ func (e *Env) CurrentNodeCount() int64 {
 	return count
 }
 
-// HistoricalEdgeCount returns the number of edges visible at the given snapshot time.
-func (e *Env) HistoricalEdgeCount(snap time.Time) int64 {
+// HistoricalEdgeCount returns the number of edges visible at the given asOfshot time.
+func (e *Env) HistoricalEdgeCount(asOf time.Time) int64 {
 	e.tb.Helper()
 	var count int64
-	err := e.Driver.AsOfReadTransaction(e.ctx, snap, func(tx graph.Transaction) error {
+	err := e.Driver.AsOfReadTransaction(e.ctx, asOf, func(tx graph.Transaction) error {
 		var err error
 		count, err = tx.Relationships().Count()
 		return err
@@ -226,11 +226,11 @@ func (e *Env) HistoricalEdgeCount(snap time.Time) int64 {
 	return count
 }
 
-// HistoricalNodeCount returns the number of nodes visible at the given snapshot time.
-func (e *Env) HistoricalNodeCount(snap time.Time) int64 {
+// HistoricalNodeCount returns the number of nodes visible at the given asOfshot time.
+func (e *Env) HistoricalNodeCount(asOf time.Time) int64 {
 	e.tb.Helper()
 	var count int64
-	err := e.Driver.AsOfReadTransaction(e.ctx, snap, func(tx graph.Transaction) error {
+	err := e.Driver.AsOfReadTransaction(e.ctx, asOf, func(tx graph.Transaction) error {
 		var err error
 		count, err = tx.Nodes().Count()
 		return err
@@ -245,10 +245,10 @@ func (e *Env) AssertCurrentEdgeCount(expected int64) {
 	require.Equal(e.tb, expected, e.CurrentEdgeCount(), "current edge count")
 }
 
-// AssertHistoricalEdgeCount asserts the historical edge count at snap equals expected.
-func (e *Env) AssertHistoricalEdgeCount(snap time.Time, expected int64) {
+// AssertHistoricalEdgeCount asserts the historical edge count at asOf equals expected.
+func (e *Env) AssertHistoricalEdgeCount(asOf time.Time, expected int64) {
 	e.tb.Helper()
-	require.Equal(e.tb, expected, e.HistoricalEdgeCount(snap), "historical edge count")
+	require.Equal(e.tb, expected, e.HistoricalEdgeCount(asOf), "historical edge count")
 }
 
 // AssertCurrentNodeCount asserts the current node count equals expected.
@@ -257,8 +257,61 @@ func (e *Env) AssertCurrentNodeCount(expected int64) {
 	require.Equal(e.tb, expected, e.CurrentNodeCount(), "current node count")
 }
 
-// AssertHistoricalNodeCount asserts the historical node count at snap equals expected.
-func (e *Env) AssertHistoricalNodeCount(snap time.Time, expected int64) {
+// AssertHistoricalNodeCount asserts the historical node count at asOf equals expected.
+func (e *Env) AssertHistoricalNodeCount(asOf time.Time, expected int64) {
 	e.tb.Helper()
-	require.Equal(e.tb, expected, e.HistoricalNodeCount(snap), "historical node count")
+	require.Equal(e.tb, expected, e.HistoricalNodeCount(asOf), "historical node count")
+}
+
+// CreateNode creates a single node with a specific name and kind, returning its ID.
+func (e *Env) CreateNode(name string, kind graph.Kind) graph.ID {
+	e.tb.Helper()
+	var id graph.ID
+	err := e.db.WriteTransaction(e.ctx, func(tx graph.Transaction) error {
+		node, err := tx.CreateNode(graph.AsProperties(map[string]any{"name": name}), kind)
+		if err != nil {
+			return err
+		}
+		id = node.ID
+		return nil
+	})
+	require.NoError(e.tb, err)
+	e.NodeIDs = append(e.NodeIDs, id)
+	return id
+}
+
+// CreateEdge creates a single edge between specific nodes, returning its ID.
+func (e *Env) CreateEdge(startID, endID graph.ID, kind graph.Kind) graph.ID {
+	e.tb.Helper()
+	var id graph.ID
+	err := e.db.WriteTransaction(e.ctx, func(tx graph.Transaction) error {
+		rel, err := tx.CreateRelationshipByIDs(startID, endID, kind, graph.NewProperties())
+		if err != nil {
+			return err
+		}
+		id = rel.ID
+		return nil
+	})
+	require.NoError(e.tb, err)
+	e.EdgeIDs = append(e.EdgeIDs, id)
+	return id
+}
+
+// DeleteEdgeByID deletes a specific edge by its ID via the batch path (CTE logging).
+func (e *Env) DeleteEdgeByID(id graph.ID) {
+	e.tb.Helper()
+	err := e.db.BatchOperation(e.ctx, func(batch graph.Batch) error {
+		return batch.DeleteRelationship(id)
+	})
+	require.NoError(e.tb, err)
+}
+
+// DB returns the underlying graph.Database for direct query access.
+func (e *Env) DB() graph.Database {
+	return e.db
+}
+
+// Ctx returns the environment's context.
+func (e *Env) Ctx() context.Context {
+	return e.ctx
 }
