@@ -25,6 +25,7 @@ import (
 	"github.com/specterops/dawgs"
 	"github.com/specterops/dawgs/drivers/pg"
 	"github.com/specterops/dawgs/graph"
+	"github.com/specterops/dawgs/opengraph"
 	"github.com/specterops/dawgs/query"
 	"github.com/specterops/dawgs/util/size"
 )
@@ -105,39 +106,16 @@ func (d *demo) run() {
 	// ---- Phase 1: Build the topology ----
 	phase("Phase 1: Building enterprise topology")
 
-	// Users
-	d.createNode("jsmith", kindUser)
-	d.createNode("jdoe", kindUser)
-	d.createNode("contractor-7", kindUser)
-	d.createNode("svc-backup", kindUser)
+	f, err := os.Open("cmd/temporal-demo/topology.json")
+	if err != nil {
+		log.Fatalf("opening topology: %v", err)
+	}
 
-	// Groups
-	d.createNode("Domain Users", kindGroup)
-	d.createNode("IT Admins", kindGroup)
-	d.createNode("Contractors", kindGroup)
-	d.createNode("Domain Admins", kindGroup)
-
-	// Computers
-	d.createNode("WS-001", kindComputer)
-	d.createNode("FILE-SRV-01", kindComputer)
-	d.createNode("DC01", kindComputer)
-
-	// Domain Admin accounts
-	d.createNode("DA-SVC", kindDomainAdmin)
-	d.createNode("DA-ADMIN", kindDomainAdmin)
-
-	// Benign memberships
-	d.createEdge("jsmith", "Domain Users", kindMemberOf)
-	d.createEdge("jdoe", "Domain Users", kindMemberOf)
-	d.createEdge("contractor-7", "Contractors", kindMemberOf)
-	d.createEdge("svc-backup", "IT Admins", kindMemberOf)
-
-	// Existing admin relationships
-	d.createEdge("IT Admins", "FILE-SRV-01", kindAdminTo)
-	d.createEdge("Domain Admins", "DC01", kindAdminTo)
-
-	// Existing sessions
-	d.createEdge("DC01", "DA-SVC", kindHasSession)
+	d.nodes, err = opengraph.Load(d.ctx, d.db, f)
+	f.Close()
+	if err != nil {
+		log.Fatalf("loading topology: %v", err)
+	}
 
 	d.printTopology()
 

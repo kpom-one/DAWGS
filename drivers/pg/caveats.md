@@ -43,3 +43,15 @@ multiple pathfinding queries in one delegate causes `relation already exists` er
 
 - Cache the last `n` analysis runs. TODO: Assess for size feasibility
 - Allow a point-in-time "snapshot" set by the user, persisted $time
+
+## No way to expose temporal queries to applications
+
+Temporal querying is only available through the Go API (`driver.AsOfReadTransaction`).
+There is no query-language-level syntax for "query as of time T" — the application must
+call the Go function directly, the way the demo script does.
+
+Oracle solves this by extending SQL (`SELECT ... AS OF TIMESTAMP`). We could do something
+similar by extending Cypher (e.g. `MATCH (n) AS OF $timestamp`) to lower into
+`AsOfReadTransaction` during query planning. Until then, applications that want to expose
+temporal queries to their users need to accept a timestamp parameter in their own API layer
+and wire it through to the Go call.
