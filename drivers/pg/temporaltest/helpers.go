@@ -245,12 +245,6 @@ func (e *Env) AssertCurrentEdgeCount(expected int64) {
 	require.Equal(e.tb, expected, e.CurrentEdgeCount(), "current edge count")
 }
 
-// AssertHistoricalEdgeCount asserts the historical edge count at asOf equals expected.
-func (e *Env) AssertHistoricalEdgeCount(asOf time.Time, expected int64) {
-	e.tb.Helper()
-	require.Equal(e.tb, expected, e.HistoricalEdgeCount(asOf), "historical edge count")
-}
-
 // AssertCurrentNodeCount asserts the current node count equals expected.
 func (e *Env) AssertCurrentNodeCount(expected int64) {
 	e.tb.Helper()
@@ -304,11 +298,6 @@ func (e *Env) DeleteEdgeByID(id graph.ID) {
 		return batch.DeleteRelationship(id)
 	})
 	require.NoError(e.tb, err)
-}
-
-// DB returns the underlying graph.Database for direct query access.
-func (e *Env) DB() graph.Database {
-	return e.db
 }
 
 // Ctx returns the environment's context.
