@@ -1,0 +1,33 @@
+{
+  "graph": {
+    "nodes": [
+      {"id": "jsmith", "kinds": ["User"], "properties": {"name": "jsmith"}},
+      {"id": "jdoe", "kinds": ["User"], "properties": {"name": "jdoe"}},
+      {"id": "contractor-7", "kinds": ["User"], "properties": {"name": "contractor-7"}},
+      {"id": "svc-backup", "kinds": ["User"], "properties": {"name": "svc-backup"}},
+
+      {"id": "Domain Users", "kinds": ["Group"], "properties": {"name": "Domain Users"}},
+      {"id": "IT Admins", "kinds": ["Group"], "properties": {"name": "IT Admins"}},
+      {"id": "Contractors", "kinds": ["Group"], "properties": {"name": "Contractors"}},
+      {"id": "Domain Admins", "kinds": ["Group"], "properties": {"name": "Domain Admins"}},
+
+      {"id": "WS-001", "kinds": ["Computer"], "properties": {"name": "WS-001"}},
+      {"id": "FILE-SRV-01", "kinds": ["Computer"], "properties": {"name": "FILE-SRV-01"}},
+      {"id": "DC01", "kinds": ["Computer"], "properties": {"name": "DC01"}},
+
+      {"id": "DA-SVC", "kinds": ["DomainAdmin"], "properties": {"name": "DA-SVC"}},
+      {"id": "DA-ADMIN", "kinds": ["DomainAdmin"], "properties": {"name": "DA-ADMIN"}}
+    ],
+    "edges": [
+      {"start": {"value": "jsmith"}, "end": {"value": "Domain Users"}, "kind": "MemberOf"},
+      {"start": {"value": "jdoe"}, "end": {"value": "Domain Users"}, "kind": "MemberOf"},
+      {"start": {"value": "contractor-7"}, "end": {"value": "Contractors"}, "kind": "MemberOf"},
+      {"start": {"value": "svc-backup"}, "end": {"value": "IT Admins"}, "kind": "MemberOf"},
+
+      {"start": {"value": "IT Admins"}, "end": {"value": "FILE-SRV-01"}, "kind": "AdminTo"},
+      {"start": {"value": "Domain Admins"}, "end": {"value": "DC01"}, "kind": "AdminTo"},
+
+      {"start": {"value": "DC01"}, "end": {"value": "DA-SVC"}, "kind": "HasSession"}
+    ]
+  }
+}
