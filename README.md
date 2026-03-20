@@ -1,8 +1,22 @@
-# DAWGS
+# DAWGS (fork)
 
 Database Abstraction Wrapper for Graph Schemas
 
 ![A Corgi Treat](logo_small.png)
+
+> **This is a personal fork of [SpecterOps/DAWGS](https://github.com/SpecterOps/BloodHound-DAWGS).**
+> It contains experimental features that are not part of the upstream project and should be
+> treated accordingly — they are works in progress, lightly tested, and subject to change.
+>
+> **What's different:**
+>
+> - **Sonic** (`drivers/sonic/`) — An in-memory graph driver. Useful for testing and lightweight
+>   workloads where you don't want a database process. No changes to existing code.
+> - **Temporal queries** (`drivers/pg/temporal.go`) — `AsOfReadTransaction` lets you query the
+>   PG graph as it existed at a past timestamp. Requires schema changes (`created_at` columns
+>   and deletion log tables). See `drivers/pg/caveats.md` for known limitations.
+> - **OpenGraph loader** (`opengraph/`) — A small utility for loading/generating graph data from
+>   a portable JSON format.
 
 ## Purpose
 

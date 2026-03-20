@@ -111,7 +111,7 @@ func (tx *transaction) Query(queryStr string, parameters map[string]any) graph.R
 		return graph.NewErrorResult(err)
 	}
 
-	slog.Info("sonic: cypher query executed", slog.String("query", queryStr), slog.Int("rows", len(result.rows)), slog.Any("keys", result.keys))
+	slog.Debug("sonic: cypher query executed", slog.String("query", queryStr), slog.Int("rows", len(result.rows)), slog.Any("keys", result.keys))
 	return result
 }
 
