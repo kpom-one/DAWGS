@@ -10,6 +10,8 @@ import (
 	"github.com/specterops/dawgs/util/size"
 )
 
+var _ graph.Transaction = (*transaction)(nil)
+
 type transaction struct {
 	db  *Database
 	ctx context.Context

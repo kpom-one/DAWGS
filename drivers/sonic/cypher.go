@@ -74,6 +74,8 @@ func resolveParamsInExpr(expr cypher.Expression, params map[string]any) cypher.E
 
 // --- sonicResult implements graph.Result ---
 
+var _ graph.Result = (*sonicResult)(nil)
+
 type sonicResult struct {
 	rows    [][]any
 	keys    []string

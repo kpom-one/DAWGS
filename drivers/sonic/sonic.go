@@ -10,6 +10,9 @@ import (
 	"github.com/specterops/dawgs/util/size"
 )
 
+// Interface compliance assertions.
+var _ graph.Database = (*Database)(nil)
+
 const DriverName = "sonic"
 
 func init() {
