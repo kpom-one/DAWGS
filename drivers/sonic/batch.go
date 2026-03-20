@@ -7,6 +7,8 @@ import (
 	"github.com/specterops/dawgs/graph"
 )
 
+var _ graph.Batch = (*batch)(nil)
+
 type batch struct {
 	db  *Database
 	ctx context.Context
@@ -55,7 +57,9 @@ func (b *batch) UpdateNodeBy(update graph.NodeUpdate) error {
 	b.db.mu.Lock()
 	defer b.db.mu.Unlock()
 
-	// Try to find an existing node that matches the identity criteria
+	// TODO: This is O(N) per call — full table scan to match identity properties.
+	// At scale (>10K nodes) this becomes unusable. Needs a secondary index on
+	// identity properties (e.g. map[kind+identityKey] -> nodeID) to be O(1).
 	for _, existing := range b.db.nodes {
 		if !existing.Kinds.ContainsOneOf(update.IdentityKind) {
 			continue
@@ -144,14 +148,36 @@ func (b *batch) UpdateRelationshipBy(update graph.RelationshipUpdate) error {
 	b.db.mu.Lock()
 	defer b.db.mu.Unlock()
 
-	rel := update.Relationship
+	// Resolve start node by identity (kind + properties)
+	startNodeID, startFound := b.findNodeByIdentity(update.Start, update.StartIdentityKind, update.StartIdentityProperties)
+	if !startFound {
+		// Create the start node if it doesn't exist
+		id := b.db.newID()
+		update.Start.ID = id
+		b.db.nodes[id] = update.Start
+		startNodeID = id
+	}
 
-	// Try to find an existing relationship that matches
+	// Resolve end node by identity (kind + properties)
+	endNodeID, endFound := b.findNodeByIdentity(update.End, update.EndIdentityKind, update.EndIdentityProperties)
+	if !endFound {
+		// Create the end node if it doesn't exist
+		id := b.db.newID()
+		update.End.ID = id
+		b.db.nodes[id] = update.End
+		endNodeID = id
+	}
+
+	rel := update.Relationship
+	rel.StartID = startNodeID
+	rel.EndID = endNodeID
+
+	// TODO: Same O(N) scan problem as UpdateNodeBy — needs indexing for scale.
 	for _, existing := range b.db.edges {
 		if existing.Kind != rel.Kind {
 			continue
 		}
-		if existing.StartID != rel.StartID || existing.EndID != rel.EndID {
+		if existing.StartID != startNodeID || existing.EndID != endNodeID {
 			continue
 		}
 		if matchesIdentity(existing.Properties, rel.Properties, update.IdentityProperties) {
@@ -165,13 +191,32 @@ func (b *batch) UpdateRelationshipBy(update graph.RelationshipUpdate) error {
 		}
 	}
 
-	// No match — create new relationship (inline to avoid double-lock)
+	// No match — create new relationship
 	id := b.db.newID()
 	rel.ID = id
 	b.db.edges[id] = rel
-	b.db.outEdges[rel.StartID] = append(b.db.outEdges[rel.StartID], id)
-	b.db.inEdges[rel.EndID] = append(b.db.inEdges[rel.EndID], id)
+	b.db.outEdges[startNodeID] = append(b.db.outEdges[startNodeID], id)
+	b.db.inEdges[endNodeID] = append(b.db.inEdges[endNodeID], id)
 	return nil
+}
+
+// findNodeByIdentity searches for a node matching the given kind and identity properties.
+// Must be called with db.mu held.
+func (b *batch) findNodeByIdentity(node *graph.Node, identityKind graph.Kind, identityProperties []string) (graph.ID, bool) {
+	if node == nil {
+		return 0, false
+	}
+
+	for _, existing := range b.db.nodes {
+		if identityKind != graph.EmptyKind && !existing.Kinds.ContainsOneOf(identityKind) {
+			continue
+		}
+		if matchesIdentity(existing.Properties, node.Properties, identityProperties) {
+			return existing.ID, true
+		}
+	}
+
+	return 0, false
 }
 
 func (b *batch) Commit() error {

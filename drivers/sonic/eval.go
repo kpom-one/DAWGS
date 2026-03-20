@@ -9,33 +9,45 @@ import (
 	"github.com/specterops/dawgs/query"
 )
 
+// evalNodeContext bundles the parameters needed by the non-binding evaluation functions.
+type evalNodeContext struct {
+	db      *Database
+	id      graph.ID
+	kinds   graph.Kinds
+	props   *graph.Properties
+	startID graph.ID
+	endID   graph.ID
+	rel     *graph.Relationship
+	relStart *graph.Node
+	relEnd   *graph.Node
+}
+
 // evalNodeCriteria evaluates a filter criteria against a node.
 func evalNodeCriteria(db *Database, n *graph.Node, criteria graph.Criteria) bool {
-	return evalCriteria(db, n.ID, n.Kinds, n.Properties, 0, 0, nil, criteria)
+	ctx := &evalNodeContext{db: db, id: n.ID, kinds: n.Kinds, props: n.Properties}
+	return ctx.evalCriteria(criteria)
 }
 
 // evalRelCriteria evaluates a filter criteria against a relationship.
 func evalRelCriteria(db *Database, r *graph.Relationship, criteria graph.Criteria) bool {
-	startNode := db.nodes[r.StartID]
-	endNode := db.nodes[r.EndID]
-	return evalCriteria(db, r.ID, nil, r.Properties, r.StartID, r.EndID, &evalContext{
-		rel:       r,
-		startNode: startNode,
-		endNode:   endNode,
-	}, criteria)
+	ctx := &evalNodeContext{
+		db:       db,
+		id:       r.ID,
+		props:    r.Properties,
+		startID:  r.StartID,
+		endID:    r.EndID,
+		rel:      r,
+		relStart: db.nodes[r.StartID],
+		relEnd:   db.nodes[r.EndID],
+	}
+	return ctx.evalCriteria(criteria)
 }
 
-type evalContext struct {
-	rel       *graph.Relationship
-	startNode *graph.Node
-	endNode   *graph.Node
-}
-
-func evalCriteria(db *Database, id graph.ID, kinds graph.Kinds, props *graph.Properties, startID, endID graph.ID, relCtx *evalContext, criteria graph.Criteria) bool {
+func (ctx *evalNodeContext) evalCriteria(criteria graph.Criteria) bool {
 	switch c := criteria.(type) {
 	case *cypher.Conjunction:
 		for _, expr := range c.Expressions {
-			if !evalCriteria(db, id, kinds, props, startID, endID, relCtx, expr) {
+			if !ctx.evalCriteria(expr) {
 				return false
 			}
 		}
@@ -43,38 +55,38 @@ func evalCriteria(db *Database, id graph.ID, kinds graph.Kinds, props *graph.Pro
 
 	case *cypher.Disjunction:
 		for _, expr := range c.Expressions {
-			if evalCriteria(db, id, kinds, props, startID, endID, relCtx, expr) {
+			if ctx.evalCriteria(expr) {
 				return true
 			}
 		}
 		return false
 
 	case *cypher.Negation:
-		return !evalCriteria(db, id, kinds, props, startID, endID, relCtx, c.Expression)
+		return !ctx.evalCriteria(c.Expression)
 
 	case *cypher.Parenthetical:
-		return evalCriteria(db, id, kinds, props, startID, endID, relCtx, c.Expression)
+		return ctx.evalCriteria(c.Expression)
 
 	case *cypher.Comparison:
-		return evalComparison(db, id, kinds, props, startID, endID, relCtx, c)
+		return ctx.evalComparison(c)
 
 	case *cypher.KindMatcher:
-		return evalKindMatcher(id, kinds, relCtx, c)
+		return ctx.evalKindMatcher(c)
 
 	default:
 		return true
 	}
 }
 
-func evalComparison(db *Database, id graph.ID, kinds graph.Kinds, props *graph.Properties, startID, endID graph.ID, relCtx *evalContext, cmp *cypher.Comparison) bool {
-	left := resolveValue(db, id, kinds, props, startID, endID, relCtx, cmp.Left)
+func (ctx *evalNodeContext) evalComparison(cmp *cypher.Comparison) bool {
+	left := ctx.resolveValue(cmp.Left)
 
 	if cmp.Partials == nil || len(cmp.Partials) == 0 {
 		return false
 	}
 
 	partial := cmp.Partials[0]
-	right := resolveValue(db, id, kinds, props, startID, endID, relCtx, partial.Right)
+	right := ctx.resolveValue(partial.Right)
 
 	switch partial.Operator {
 	case cypher.OperatorEquals:
@@ -106,32 +118,32 @@ func evalComparison(db *Database, id graph.ID, kinds graph.Kinds, props *graph.P
 	}
 }
 
-func evalKindMatcher(id graph.ID, kinds graph.Kinds, relCtx *evalContext, km *cypher.KindMatcher) bool {
+func (ctx *evalNodeContext) evalKindMatcher(km *cypher.KindMatcher) bool {
 	// Determine which kinds to match against based on the reference variable
 	var targetKinds graph.Kinds
 
 	if v, ok := km.Reference.(*cypher.Variable); ok {
 		switch v.Symbol {
 		case query.EdgeStartSymbol:
-			if relCtx != nil && relCtx.startNode != nil {
-				targetKinds = relCtx.startNode.Kinds
+			if ctx.relStart != nil {
+				targetKinds = ctx.relStart.Kinds
 			}
 		case query.EdgeEndSymbol:
-			if relCtx != nil && relCtx.endNode != nil {
-				targetKinds = relCtx.endNode.Kinds
+			if ctx.relEnd != nil {
+				targetKinds = ctx.relEnd.Kinds
 			}
 		default:
-			targetKinds = kinds
+			targetKinds = ctx.kinds
 		}
 	} else {
-		targetKinds = kinds
+		targetKinds = ctx.kinds
 	}
 
 	// For relationship kind matching
-	if relCtx != nil && relCtx.rel != nil {
+	if ctx.rel != nil {
 		if v, ok := km.Reference.(*cypher.Variable); ok && v.Symbol == query.EdgeSymbol {
 			for _, k := range km.Kinds {
-				if relCtx.rel.Kind == k {
+				if ctx.rel.Kind == k {
 					return true
 				}
 			}
@@ -155,7 +167,7 @@ func evalKindMatcher(id graph.ID, kinds graph.Kinds, relCtx *evalContext, km *cy
 	return true
 }
 
-func resolveValue(db *Database, id graph.ID, kinds graph.Kinds, props *graph.Properties, startID, endID graph.ID, relCtx *evalContext, expr any) any {
+func (ctx *evalNodeContext) resolveValue(expr any) any {
 	switch e := expr.(type) {
 	case *cypher.Variable:
 		return nil
@@ -165,18 +177,18 @@ func resolveValue(db *Database, id graph.ID, kinds graph.Kinds, props *graph.Pro
 			if v, ok := e.Arguments[0].(*cypher.Variable); ok {
 				switch v.Symbol {
 				case query.NodeSymbol:
-					return id
+					return ctx.id
 				case query.EdgeSymbol:
-					return id
+					return ctx.id
 				case query.EdgeStartSymbol:
-					return startID
+					return ctx.startID
 				case query.EdgeEndSymbol:
-					return endID
+					return ctx.endID
 				}
 			}
 		}
 		if e.Name == "toLower" && len(e.Arguments) > 0 {
-			inner := resolveValue(db, id, kinds, props, startID, endID, relCtx, e.Arguments[0])
+			inner := ctx.resolveValue(e.Arguments[0])
 			if s, ok := inner.(string); ok {
 				return strings.ToLower(s)
 			}
@@ -184,7 +196,7 @@ func resolveValue(db *Database, id graph.ID, kinds graph.Kinds, props *graph.Pro
 		return nil
 
 	case *cypher.PropertyLookup:
-		return resolveProperty(db, id, props, startID, endID, relCtx, e)
+		return ctx.resolveProperty(e)
 
 	case *cypher.Parameter:
 		return e.Value
@@ -200,22 +212,22 @@ func resolveValue(db *Database, id graph.ID, kinds graph.Kinds, props *graph.Pro
 	}
 }
 
-func resolveProperty(db *Database, id graph.ID, props *graph.Properties, startID, endID graph.ID, relCtx *evalContext, lookup *cypher.PropertyLookup) any {
+func (ctx *evalNodeContext) resolveProperty(lookup *cypher.PropertyLookup) any {
 	var targetProps *graph.Properties
 
 	if v, ok := lookup.Atom.(*cypher.Variable); ok {
 		switch v.Symbol {
 		case query.NodeSymbol:
-			targetProps = props
+			targetProps = ctx.props
 		case query.EdgeSymbol:
-			targetProps = props
+			targetProps = ctx.props
 		case query.EdgeStartSymbol:
-			if relCtx != nil && relCtx.startNode != nil {
-				targetProps = relCtx.startNode.Properties
+			if ctx.relStart != nil {
+				targetProps = ctx.relStart.Properties
 			}
 		case query.EdgeEndSymbol:
-			if relCtx != nil && relCtx.endNode != nil {
-				targetProps = relCtx.endNode.Properties
+			if ctx.relEnd != nil {
+				targetProps = ctx.relEnd.Properties
 			}
 		}
 	}

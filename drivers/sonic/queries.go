@@ -4,6 +4,12 @@ import (
 	"github.com/specterops/dawgs/graph"
 )
 
+// Interface compliance assertions.
+var (
+	_ graph.NodeQuery         = (*nodeQuery)(nil)
+	_ graph.RelationshipQuery = (*relQuery)(nil)
+)
+
 // --- NodeQuery ---
 
 type nodeQuery struct {

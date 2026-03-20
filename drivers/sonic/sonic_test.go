@@ -1058,3 +1058,104 @@ func TestCypherAnonymousNodes(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestUpdateRelationshipByResolvesNodes verifies that UpdateRelationshipBy resolves
+// start/end nodes by identity properties (like BHE's data ingestion pipeline does).
+func TestUpdateRelationshipByResolvesNodes(t *testing.T) {
+	db := NewDatabase()
+	ctx := context.Background()
+
+	// Step 1: Create nodes via UpdateNodeBy (simulating ingestion)
+	err := db.BatchOperation(ctx, func(batch graph.Batch) error {
+		if err := batch.UpdateNodeBy(graph.NodeUpdate{
+			Node:               graph.PrepareNode(graph.AsProperties(map[string]any{"objectid": "USER-001", "name": "Alice"}), User),
+			IdentityKind:       User,
+			IdentityProperties: []string{"objectid"},
+		}); err != nil {
+			return err
+		}
+		if err := batch.UpdateNodeBy(graph.NodeUpdate{
+			Node:               graph.PrepareNode(graph.AsProperties(map[string]any{"objectid": "GROUP-001", "name": "Admins"}), Group),
+			IdentityKind:       Group,
+			IdentityProperties: []string{"objectid"},
+		}); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Step 2: Create relationship via UpdateRelationshipBy (simulating ingestion)
+	err = db.BatchOperation(ctx, func(batch graph.Batch) error {
+		return batch.UpdateRelationshipBy(graph.RelationshipUpdate{
+			Relationship: graph.PrepareRelationship(graph.AsProperties(map[string]any{"lastseen": "2024-01-01"}), MemberOf),
+			Start: graph.PrepareNode(graph.AsProperties(map[string]any{"objectid": "USER-001"}), User),
+			StartIdentityKind:       User,
+			StartIdentityProperties: []string{"objectid"},
+			End: graph.PrepareNode(graph.AsProperties(map[string]any{"objectid": "GROUP-001"}), Group),
+			EndIdentityKind:         Group,
+			EndIdentityProperties:   []string{"objectid"},
+		})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Step 3: Verify the relationship connects the correct nodes
+	err = db.ReadTransaction(ctx, func(tx graph.Transaction) error {
+		result := tx.Query("MATCH (s)-[r:MemberOf]->(e) RETURN s, r, e", nil)
+		if result.Error() != nil {
+			return result.Error()
+		}
+		defer result.Close()
+
+		count := 0
+		for result.Next() {
+			count++
+			values := result.Values()
+			if len(values) != 3 {
+				t.Fatalf("expected 3 values, got %d", len(values))
+			}
+
+			startNode, ok := values[0].(*graph.Node)
+			if !ok {
+				t.Fatalf("expected *graph.Node for start, got %T", values[0])
+			}
+			rel, ok := values[1].(*graph.Relationship)
+			if !ok {
+				t.Fatalf("expected *graph.Relationship, got %T", values[1])
+			}
+			endNode, ok := values[2].(*graph.Node)
+			if !ok {
+				t.Fatalf("expected *graph.Node for end, got %T", values[2])
+			}
+
+			// Verify edge StartID/EndID match the actual node IDs
+			if rel.StartID != startNode.ID {
+				t.Errorf("edge StartID %d != start node ID %d", rel.StartID, startNode.ID)
+			}
+			if rel.EndID != endNode.ID {
+				t.Errorf("edge EndID %d != end node ID %d", rel.EndID, endNode.ID)
+			}
+
+			// Verify node properties
+			name, _ := startNode.Properties.Get("name").String()
+			if name != "Alice" {
+				t.Errorf("expected start node name 'Alice', got %q", name)
+			}
+			endName, _ := endNode.Properties.Get("name").String()
+			if endName != "Admins" {
+				t.Errorf("expected end node name 'Admins', got %q", endName)
+			}
+		}
+		if count != 1 {
+			t.Errorf("expected 1 relationship, got %d", count)
+		}
+		return result.Error()
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
