@@ -73,6 +73,33 @@ BFS shortest-path implementation that:
 - **OrderBy, Offset, Limit** on `nodeQuery`/`relQuery` — accepted but no-op
 - **Persistence** — data lives only in memory, lost on process exit (by design)
 
+## Benchmarks (Apple M3 Max)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    SONIC DRIVER BENCHMARKS (Apple M3 Max)                    │
+├─────────────────────┬──────────┬──────────┬──────────┬──────────────────────┤
+│ Benchmark           │   100K   │    1M    │    5M    │   10M edges          │
+├─────────────────────┼──────────┼──────────┼──────────┼──────────────────────┤
+│ Ingest              │    52ms  │   774ms  │   4.9s   │  10.6s               │
+│ RSS after ingest    │    94MB  │   559MB  │   2.5GB  │   4.9GB              │
+├─────────────────────┼──────────┼──────────┼──────────┼──────────────────────┤
+│ Count by Kind       │   2.9ms  │    45ms  │   447ms  │   968ms              │
+│ Shortest Path       │   857ns  │   238ms  │   447ms  │   1.8s               │
+│ Fetch by Property   │   5.8ms  │   171ms  │   1.1s   │   1.9s               │
+│ Rel Traversal       │   5.3ms  │    68ms  │   818ms  │   2.7s               │
+│ Cypher (LIMIT 10)   │   2.6ms  │    27ms  │    43ms* │    51ms*             │
+├─────────────────────┴──────────┴──────────┴──────────┴──────────────────────┤
+│ * = binding limit errors (100K cap, LIMIT not pushed down)                  │
+│                                                                             │
+│ Strengths: Fast ingest, sub-μs traversal from known nodes                   │
+│ Weakness:  No secondary indexes — all filters are O(N) full scans           │
+│ Memory:    ~500 bytes/edge all-in                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+Run benchmarks: `go test -run='^$' -bench=. -benchtime=100ms ./drivers/`
+
 ## Constraints
 
 - **No persistence** — data is lost when the process exits. By design for the initial version.
