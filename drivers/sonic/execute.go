@@ -10,7 +10,13 @@ import (
 	"github.com/specterops/dawgs/graph"
 )
 
-const maxBindings = 100000
+const (
+	maxBindings = 100000
+
+	// nextNodeKey is the temporary binding key used to pass the terminal node
+	// from a relationship expansion to the next node pattern.
+	nextNodeKey = "__next_node__"
+)
 
 // binding represents a single row in the binding table: variable name → value.
 type binding map[string]any
@@ -360,13 +366,13 @@ func (ex *executor) expandNodePattern(np *cypher.NodePattern) {
 			}
 		}
 
-		// If __next_node__ is set (from a preceding relationship expansion),
+		// If nextNodeKey is set (from a preceding relationship expansion),
 		// bind from it instead of scanning all nodes.
-		if nextNode, ok := row["__next_node__"]; ok {
+		if nextNode, ok := row[nextNodeKey]; ok {
 			if node, ok := nextNode.(*graph.Node); ok {
 				if ex.nodeMatchesPattern(node, np) {
 					newRow := copyBinding(row)
-					delete(newRow, "__next_node__")
+					delete(newRow, nextNodeKey)
 					if varName != "" {
 						newRow[varName] = node
 					}
@@ -493,7 +499,7 @@ func (ex *executor) expandRelationshipPattern(rp *cypher.RelationshipPattern) {
 			}
 			// The other end node will be bound by the next NodePattern
 			// Store it temporarily so the next NodePattern can pick it up
-			newRow["__next_node__"] = otherNode
+			newRow[nextNodeKey] = otherNode
 			expanded = append(expanded, newRow)
 
 			if len(expanded) > maxBindings {
@@ -517,7 +523,7 @@ const maxVarLengthDepth = 50
 // It performs BFS from the anchor node, collecting all paths whose length falls
 // within [minHops, maxHops]. Each valid path produces a new binding row with:
 //   - relVar → []*graph.Relationship (the edges traversed)
-//   - __next_node__ → the terminal node
+//   - nextNodeKey → the terminal node
 func (ex *executor) expandVariableLengthPattern(rp *cypher.RelationshipPattern) {
 	minHops := int64(1)
 	maxHops := int64(maxVarLengthDepth)
@@ -578,7 +584,7 @@ func (ex *executor) expandVariableLengthPattern(rp *cypher.RelationshipPattern) 
 						copy(edgeCopy, cur.edges)
 						newRow[relVar] = edgeCopy
 					}
-					newRow["__next_node__"] = terminalNode
+					newRow[nextNodeKey] = terminalNode
 					expanded = append(expanded, newRow)
 
 					if len(expanded) > maxBindings {
@@ -665,10 +671,10 @@ func (ex *executor) expandVariableLengthPattern(rp *cypher.RelationshipPattern) 
 }
 
 // findAnchorNode returns the most recently bound node in a binding row.
-// It looks for the __next_node__ temporary or the last bound *graph.Node.
+// It looks for the nextNodeKey temporary or the last bound *graph.Node.
 func (ex *executor) findAnchorNode(row binding) *graph.Node {
-	// Check for __next_node__ left by a previous relationship expansion
-	if n, ok := row["__next_node__"]; ok {
+	// Check for nextNodeKey left by a previous relationship expansion
+	if n, ok := row[nextNodeKey]; ok {
 		if node, ok := n.(*graph.Node); ok {
 			return node
 		}
@@ -745,9 +751,9 @@ func (ex *executor) finalizeMatch() {
 		ex.bindings = restored
 	}
 
-	// Clean up __next_node__ temporaries
+	// Clean up nextNodeKey temporaries
 	for _, row := range ex.bindings {
-		delete(row, "__next_node__")
+		delete(row, nextNodeKey)
 	}
 }
 

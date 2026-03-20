@@ -7,6 +7,8 @@ import (
 	"github.com/specterops/dawgs/graph"
 )
 
+var _ graph.Batch = (*batch)(nil)
+
 type batch struct {
 	db  *Database
 	ctx context.Context
