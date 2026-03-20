@@ -57,7 +57,9 @@ func (b *batch) UpdateNodeBy(update graph.NodeUpdate) error {
 	b.db.mu.Lock()
 	defer b.db.mu.Unlock()
 
-	// Try to find an existing node that matches the identity criteria
+	// TODO: This is O(N) per call — full table scan to match identity properties.
+	// At scale (>10K nodes) this becomes unusable. Needs a secondary index on
+	// identity properties (e.g. map[kind+identityKey] -> nodeID) to be O(1).
 	for _, existing := range b.db.nodes {
 		if !existing.Kinds.ContainsOneOf(update.IdentityKind) {
 			continue
@@ -170,7 +172,7 @@ func (b *batch) UpdateRelationshipBy(update graph.RelationshipUpdate) error {
 	rel.StartID = startNodeID
 	rel.EndID = endNodeID
 
-	// Try to find an existing relationship that matches
+	// TODO: Same O(N) scan problem as UpdateNodeBy — needs indexing for scale.
 	for _, existing := range b.db.edges {
 		if existing.Kind != rel.Kind {
 			continue
