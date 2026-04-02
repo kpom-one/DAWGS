@@ -70,7 +70,7 @@ func (db *Database) WriteTransaction(ctx context.Context, txDelegate graph.Trans
 	return txDelegate(&transaction{db: db, ctx: ctx})
 }
 
-func (db *Database) BatchOperation(ctx context.Context, batchDelegate graph.BatchDelegate) error {
+func (db *Database) BatchOperation(ctx context.Context, batchDelegate graph.BatchDelegate, options ...graph.BatchOption) error {
 	return batchDelegate(&batch{db: db, ctx: ctx})
 }
 

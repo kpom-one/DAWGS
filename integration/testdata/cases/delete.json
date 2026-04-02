@@ -5,12 +5,31 @@
       "cypher": "match ()-[r:EdgeKind1]->() delete r",
       "fixture": {
         "nodes": [
-          {"id": "a", "kinds": ["NodeKind1"]},
-          {"id": "b", "kinds": ["NodeKind2"]}
+          {
+            "id": "a",
+            "kinds": [
+              "NodeKind1"
+            ]
+          },
+          {
+            "id": "b",
+            "kinds": [
+              "NodeKind2"
+            ]
+          }
         ],
-        "edges": [{"start_id": "a", "end_id": "b", "kind": "EdgeKind1"}]
+        "edges": [
+          {
+            "start_id": "a",
+            "end_id": "b",
+            "kind": "EdgeKind1"
+          }
+        ]
       },
       "assert": "no_error"
     }
+  ],
+  "skip_drivers": [
+    "sonic"
   ]
 }

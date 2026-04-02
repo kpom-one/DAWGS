@@ -219,6 +219,19 @@ func (b *batch) findNodeByIdentity(node *graph.Node, identityKind graph.Kind, id
 	return 0, false
 }
 
+func (b *batch) UpdateNodes(nodes []*graph.Node) error {
+	b.db.mu.Lock()
+	defer b.db.mu.Unlock()
+
+	for _, node := range nodes {
+		if existing, ok := b.db.nodes[node.ID]; ok {
+			existing.Kinds = node.Kinds
+			existing.Properties = node.Properties
+		}
+	}
+	return nil
+}
+
 func (b *batch) Commit() error {
 	return nil
 }
