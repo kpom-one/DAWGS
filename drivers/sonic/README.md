@@ -69,9 +69,28 @@ BFS shortest-path implementation that:
 
 - **Cypher write operations**: CREATE, DELETE, SET, REMOVE, MERGE return errors. Use the `graph.Transaction` or `graph.Batch` interfaces for writes.
 - **UNWIND, quantifiers, filter expressions** in Cypher
-- **Aggregation functions** (count, collect, sum, avg, min, max) — return nil stubs in Cypher evaluation
-- **OrderBy, Offset, Limit** on `nodeQuery`/`relQuery` — accepted but no-op
-- **Persistence** — data lives only in memory, lost on process exit (by design)
+- **Aggregation functions** (count, collect, sum, avg, min, max) — return nil stubs in the filter evaluator; not yet implemented in Cypher execution
+- **OrderBy, Offset, Limit** on the Go query API (`nodeQuery`/`relQuery`) — accepted but no-op. These *do* work in Cypher execution (ORDER BY, SKIP, LIMIT).
+## Persistence
+
+By default, sonic is purely in-memory. If a `sonic://` connection string is provided, the driver will load an [opengraph](../../opengraph) JSON file on startup and save it on graceful shutdown.
+
+```go
+// In-memory only
+db := sonic.NewDatabase()
+
+// With persistence
+db, _ := dawgs.Open(ctx, "sonic", dawgs.Config{
+    ConnectionString: "sonic://data/graph.json",
+})
+// ... use db ...
+db.Close(ctx) // saves to data/graph.json if any writes occurred
+```
+
+- Data is saved only on `Close()` — a crash loses any writes since the last close
+- If the file doesn't exist on startup, the database starts empty
+- Read-only sessions don't create a file
+- The file format is standard opengraph JSON, compatible with `opengraph.Load()` / `opengraph.Export()`
 
 ## Benchmarks (Apple M3 Max)
 
@@ -98,11 +117,12 @@ BFS shortest-path implementation that:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Run benchmarks: `go test -run='^$' -bench=. -benchtime=100ms ./drivers/`
+Run synthetic benchmarks: `go test -run='^$' -bench=. -benchtime=100ms ./drivers/`
+
+For cross-driver comparison benchmarks against real datasets, see [`cmd/benchmark/README.md`](../../cmd/benchmark/README.md).
 
 ## Constraints
 
-- **No persistence** — data is lost when the process exits. By design for the initial version.
 - **Coarse locking** — `sync.RWMutex` protects the whole database, not individual operations. Fine for single-user BHE.
 - **Non-deterministic ordering** — map iteration means query results may come back in different orders than Postgres.
 - **Binding limit** — Cypher execution caps at 100,000 intermediate bindings.
@@ -110,5 +130,5 @@ Run benchmarks: `go test -run='^$' -bench=. -benchtime=100ms ./drivers/`
 
 ## Tests
 
-- **Unit tests** (`sonic_test.go`): CRUD, property filters, shortest paths, Cypher queries (kind filtering, negation, multi-part, variable-length paths, anonymous nodes, concurrent access)
+- **Unit tests** (`sonic_test.go`): CRUD, property filters, shortest paths, Cypher queries (kind filtering, negation, multi-part, variable-length paths, anonymous nodes, concurrent access), persistence round-trip
 - **Integration tests** (`integration_test.go`): node/relationship operations, attack path finding, batch upserts, parallel fetches against a realistic graph topology

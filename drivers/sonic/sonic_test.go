@@ -3,6 +3,8 @@ package sonic
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/specterops/dawgs/graph"
@@ -1157,5 +1159,122 @@ func TestUpdateRelationshipByResolvesNodes(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestPersistenceRoundTrip verifies that data survives a close/reopen cycle via opengraph.
+func TestPersistenceRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "graph.json")
+
+	// Phase 1: create data and close (should write to disk)
+	db1 := NewDatabase()
+	db1.dataPath = path
+
+	err := db1.WriteTransaction(ctx, func(tx graph.Transaction) error {
+		alice, err := tx.CreateNode(graph.AsProperties(map[string]any{"name": "Alice"}), User)
+		if err != nil {
+			return err
+		}
+
+		bob, err := tx.CreateNode(graph.AsProperties(map[string]any{"name": "Bob"}), Group)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.CreateRelationshipByIDs(alice.ID, bob.ID, MemberOf, graph.AsProperties(map[string]any{"since": "2024"}))
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db1.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify file was written
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("expected persistence file at %s: %v", path, err)
+	}
+
+
+	// Phase 2: open a fresh database from the same file
+	db2 := NewDatabase()
+	db2.dataPath = path
+
+	if err := db2.loadFromDisk(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify nodes survived
+	var nodeCount int64
+	err = db2.ReadTransaction(ctx, func(tx graph.Transaction) error {
+		var err error
+		nodeCount, err = tx.Nodes().Count()
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nodeCount != 2 {
+		t.Fatalf("expected 2 nodes after reload, got %d", nodeCount)
+	}
+
+	// Verify edges survived
+	var edgeCount int64
+	err = db2.ReadTransaction(ctx, func(tx graph.Transaction) error {
+		var err error
+		edgeCount, err = tx.Relationships().Count()
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if edgeCount != 1 {
+		t.Fatalf("expected 1 edge after reload, got %d", edgeCount)
+	}
+
+	// Verify property data survived
+	err = db2.ReadTransaction(ctx, func(tx graph.Transaction) error {
+		node, err := tx.Nodes().Filter(query.Equals(query.NodeProperty("name"), "Alice")).First()
+		if err != nil {
+			return fmt.Errorf("failed to find Alice: %w", err)
+		}
+
+		name, _ := node.Properties.Get("name").String()
+		if name != "Alice" {
+			return fmt.Errorf("expected name 'Alice', got %q", name)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestPersistenceNoWriteNoFile verifies that a read-only session doesn't create a file.
+func TestPersistenceNoWriteNoFile(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "should_not_exist.json")
+
+	db := NewDatabase()
+	db.dataPath = path
+
+	// Only read — no writes
+	err := db.ReadTransaction(ctx, func(tx graph.Transaction) error {
+		_, err := tx.Nodes().Count()
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("expected no file at %s after read-only session", path)
 	}
 }
