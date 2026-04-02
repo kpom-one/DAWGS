@@ -14,22 +14,14 @@
     {
       "name": "count edges of a specific kind",
       "cypher": "match ()-[r:EdgeKind1]->() return count(r) as the_count",
-      "assert": {
-        "at_least_int": 1
-      },
-      "skip_drivers": [
-        "sonic"
-      ]
+      "assert": {"at_least_int": 1},
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "count typed edges reaching a node matching an inline property map",
       "cypher": "match ()-[r:EdgeKind1]->({name: \"123\"}) return count(r) as the_count",
-      "assert": {
-        "exact_int": 0
-      },
-      "skip_drivers": [
-        "sonic"
-      ]
+      "assert": {"exact_int": 0},
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "filter edges by a numeric property value",

@@ -20,9 +20,7 @@
       "name": "bind a numeric literal as a WITH variable and use it in arithmetic in the next MATCH",
       "cypher": "with 365 as max_days match (n:NodeKind1) where n.pwdlastset < (datetime().epochseconds - (max_days * 86400)) and not n.pwdlastset IN [-1.0, 0.0] return n limit 100",
       "assert": "non_empty",
-      "skip_drivers": [
-        "sonic"
-      ]
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "match a typed node then bind its variable-length expansion to a path",

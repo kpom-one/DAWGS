@@ -45,9 +45,7 @@
       "name": "bind expansion path filtered by a regular expression on the endpoint name",
       "cypher": "match p = (n:NodeKind1)-[:EdgeKind1|EdgeKind2*1..2]->(r:NodeKind2) where r.name =~ '1.*' return p limit 10",
       "assert": "non_empty",
-      "skip_drivers": [
-        "sonic"
-      ]
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "bind incoming expansion path where source matches a kind disjunction",

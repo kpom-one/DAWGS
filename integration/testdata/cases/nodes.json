@@ -9,22 +9,12 @@
     {
       "name": "filter any node by string property equality",
       "cypher": "match (n) where n.name = '1234' return n",
-      "assert": {
-        "contains_node_with_prop": [
-          "name",
-          "1234"
-        ]
-      }
+      "assert": {"contains_node_with_prop": ["name", "1234"]}
     },
     {
       "name": "filter a typed node using an inline property map",
       "cypher": "match (n:NodeKind1 {name: \"SOME NAME\"}) return n",
-      "assert": {
-        "contains_node_with_prop": [
-          "name",
-          "SOME NAME"
-        ]
-      }
+      "assert": {"contains_node_with_prop": ["name", "SOME NAME"]}
     },
     {
       "name": "return all nodes",
@@ -44,70 +34,38 @@
     {
       "name": "filter any node by string property equality (s binding)",
       "cypher": "match (s) where s.name = '1234' return s",
-      "assert": {
-        "contains_node_with_prop": [
-          "name",
-          "1234"
-        ]
-      }
+      "assert": {"contains_node_with_prop": ["name", "1234"]}
     },
     {
       "name": "filter node by string starts-with prefix",
       "cypher": "match (s) where s.name starts with '123' return s",
-      "assert": {
-        "contains_node_with_prop": [
-          "name",
-          "1234"
-        ]
-      }
+      "assert": {"contains_node_with_prop": ["name", "1234"]}
     },
     {
       "name": "filter node by string ends-with suffix",
       "cypher": "match (s) where s.name ends with 'NAME' return s",
-      "assert": {
-        "contains_node_with_prop": [
-          "name",
-          "SOME NAME"
-        ]
-      }
+      "assert": {"contains_node_with_prop": ["name", "SOME NAME"]}
     },
     {
       "name": "filter node where a property is not null",
       "cypher": "match (n) where n.system_tags is not null return n",
-      "assert": {
-        "contains_node_with_prop": [
-          "system_tags",
-          "admin_tier_0"
-        ]
-      }
+      "assert": {"contains_node_with_prop": ["system_tags", "admin_tier_0"]}
     },
     {
       "name": "filter typed node using coalesce with contains predicate",
       "cypher": "match (n:NodeKind1) where coalesce(n.system_tags, '') contains 'admin_tier_0' return n",
-      "assert": {
-        "contains_node_with_prop": [
-          "system_tags",
-          "admin_tier_0"
-        ]
-      },
-      "skip_drivers": [
-        "sonic"
-      ]
+      "assert": {"contains_node_with_prop": ["system_tags", "admin_tier_0"]},
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "filter typed node by array property size",
       "cypher": "match (n:NodeKind1) where size(n.array_value) > 0 return n",
       "assert": "non_empty",
-      "skip_drivers": [
-        "sonic"
-      ]
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "filter typed node where array property overlaps a literal list",
-      "skip_drivers": [
-        "neo4j",
-        "sonic"
-      ],
+      "skip_drivers": ["neo4j", "sonic"],
       "cypher": "match (n:NodeKind1) where ['DES-CBC-CRC', 'DES-CBC-MD5', 'RC4-HMAC-MD5'] in n.arrayProperty return n",
       "assert": "non_empty"
     },
@@ -119,12 +77,7 @@
     {
       "name": "filter node carrying two kind labels simultaneously",
       "cypher": "match (s) where s:NodeKind1 and s:NodeKind2 return s",
-      "assert": {
-        "contains_node_with_prop": [
-          "name",
-          "n3"
-        ]
-      }
+      "assert": {"contains_node_with_prop": ["name", "n3"]}
     },
     {
       "name": "paginate results using SKIP and LIMIT",
@@ -169,12 +122,7 @@
     {
       "name": "filter node by string contains predicate",
       "cypher": "match (s) where s.name contains '123' return s",
-      "assert": {
-        "contains_node_with_prop": [
-          "name",
-          "1234"
-        ]
-      }
+      "assert": {"contains_node_with_prop": ["name", "1234"]}
     },
     {
       "name": "filter node using negated starts-with predicate",
@@ -220,30 +168,19 @@
       "name": "filter typed node using datetime arithmetic against epoch seconds",
       "cypher": "match (u:NodeKind1) where u.pwdlastset < (datetime().epochseconds - (365 * 86400)) and not u.pwdlastset IN [-1.0, 0.0] return u limit 100",
       "assert": "non_empty",
-      "skip_drivers": [
-        "sonic"
-      ]
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "filter node using coalesce equality on a named property",
       "cypher": "match (n) where coalesce(n.name, '') = '1234' return n",
-      "assert": {
-        "contains_node_with_prop": [
-          "name",
-          "1234"
-        ]
-      },
-      "skip_drivers": [
-        "sonic"
-      ]
+      "assert": {"contains_node_with_prop": ["name", "1234"]},
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "filter typed node using three-argument coalesce equality against an integer",
       "cypher": "match (n:NodeKind1) where coalesce(n.a, n.b, 1) = 1 return n",
       "assert": "non_empty",
-      "skip_drivers": [
-        "sonic"
-      ]
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "filter typed node using two-property coalesce that resolves to null",
@@ -263,12 +200,7 @@
     {
       "name": "filter node using toLower equality and return distinct results",
       "cypher": "match (s) where toLower(s.name) = '1234' return distinct s",
-      "assert": {
-        "contains_node_with_prop": [
-          "name",
-          "1234"
-        ]
-      }
+      "assert": {"contains_node_with_prop": ["name", "1234"]}
     },
     {
       "name": "filter typed node where a property contains a toUpper result",
@@ -289,16 +221,11 @@
       "name": "filter typed node where toString of a property appears in a literal list",
       "cypher": "match (n:NodeKind1) where toString(n.functionallevel) in ['2008 R2', '2012', '2008', '2003'] return n",
       "assert": "non_empty",
-      "skip_drivers": [
-        "sonic"
-      ]
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "filter typed node where toInt of a property appears in a literal integer list",
-      "skip_drivers": [
-        "neo4j",
-        "sonic"
-      ],
+      "skip_drivers": ["neo4j", "sonic"],
       "cypher": "match (n:NodeKind1) where toInt(n.value) in [1, 2, 3, 4] return n",
       "assert": "non_empty"
     },
@@ -306,9 +233,7 @@
       "name": "filter typed node using datetime arithmetic against epoch milliseconds",
       "cypher": "match (u:NodeKind1) where u.pwdlastset < (datetime().epochmillis - 86400000) and not u.pwdlastset IN [-1.0, 0.0] return u limit 100",
       "assert": "non_empty",
-      "skip_drivers": [
-        "sonic"
-      ]
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "filter node where a datetime property equals the current date",
@@ -322,9 +247,7 @@
     },
     {
       "name": "filter node where a property equals date plus a duration string",
-      "skip_drivers": [
-        "neo4j"
-      ],
+      "skip_drivers": ["neo4j"],
       "cypher": "match (s) where s.created_at = date() + duration('4 hours') return s",
       "assert": "no_error"
     },
@@ -377,17 +300,13 @@
       "name": "filter node using negated directed edge pattern with property constraints",
       "cypher": "match (s) where not (s)-[{prop: 'a'}]->({name: 'n3'}) return s",
       "assert": "non_empty",
-      "skip_drivers": [
-        "sonic"
-      ]
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "filter node using negated incoming edge pattern with property constraints",
       "cypher": "match (s) where not (s)<-[{prop: 'a'}]-({name: 'n3'}) return s",
       "assert": "non_empty",
-      "skip_drivers": [
-        "sonic"
-      ]
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "return id of node where negated kind filter removes typed results",
@@ -423,9 +342,7 @@
       "name": "filter typed node using property equality with literal-then-property concatenation",
       "cypher": "match (n:NodeKind1) match (m:NodeKind2) where m.distinguishedname = 'CN=ADMINSDHOLDER,CN=SYSTEM,' + n.distinguishedname return m",
       "assert": "non_empty",
-      "skip_drivers": [
-        "sonic"
-      ]
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "filter typed node using property equality with property-then-literal concatenation",
