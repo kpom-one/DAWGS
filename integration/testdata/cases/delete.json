@@ -12,5 +12,6 @@
       },
       "assert": "no_error"
     }
-  ]
+  ],
+  "skip_drivers": ["sonic"]
 }

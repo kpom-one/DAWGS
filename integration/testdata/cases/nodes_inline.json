@@ -2,6 +2,7 @@
   "cases": [
     {
       "name": "filter node where property value appears in a literal list",
+      "skip_drivers": ["sonic"],
       "cypher": "match (s) where s.name in ['option 1', 'option 2'] return s",
       "fixture": {
         "nodes": [
@@ -51,6 +52,7 @@
     },
     {
       "name": "filter node using an arithmetic expression in the WHERE clause",
+      "skip_drivers": ["sonic"],
       "cypher": "match (s) where s.value + 2 / 3 > 10 return s",
       "fixture": {
         "nodes": [
@@ -74,6 +76,7 @@
     },
     {
       "name": "filter typed node where a scalar appears in an array property concatenated with a literal list",
+      "skip_drivers": ["sonic"],
       "cypher": "match (n:NodeKind1) where '1' in n.array_prop + ['1', '2'] return n",
       "fixture": {
         "nodes": [

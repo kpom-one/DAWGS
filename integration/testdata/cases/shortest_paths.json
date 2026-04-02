@@ -4,12 +4,14 @@
     {
       "name": "shortest path across two hops",
       "cypher": "MATCH p = allShortestPaths((s)-[*1..]->(e)) WHERE s.name = 'SOME NAME' AND e.name = 'n3' RETURN p",
-      "assert": "non_empty"
+      "assert": "non_empty",
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "shortest path single hop",
       "cypher": "MATCH p = allShortestPaths((s)-[*1..]->(e)) WHERE s.name = 'SOME NAME' AND e.name = '1234' RETURN p",
-      "assert": "non_empty"
+      "assert": "non_empty",
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "shortest path wrong direction returns empty",

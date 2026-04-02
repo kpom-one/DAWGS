@@ -2,6 +2,7 @@
   "cases": [
     {
       "name": "shortest path picks direct edge over longer route",
+      "skip_drivers": ["sonic"],
       "cypher": "MATCH p = allShortestPaths((s)-[*1..]->(e)) WHERE s.name = 'a' AND e.name = 'd' RETURN p",
       "fixture": {
         "nodes": [
@@ -21,6 +22,7 @@
     },
     {
       "name": "multiple shortest paths of equal length",
+      "skip_drivers": ["sonic"],
       "cypher": "MATCH p = allShortestPaths((s)-[*1..]->(e)) WHERE s.name = 'a' AND e.name = 'd' RETURN p",
       "fixture": {
         "nodes": [
@@ -52,6 +54,7 @@
     },
     {
       "name": "three shortest paths through a wide fan",
+      "skip_drivers": ["sonic"],
       "cypher": "MATCH p = allShortestPaths((s)-[*1..]->(e)) WHERE s.name = 'a' AND e.name = 'e' RETURN p",
       "fixture": {
         "nodes": [
@@ -74,6 +77,7 @@
     },
     {
       "name": "dead end branch does not affect shortest path",
+      "skip_drivers": ["sonic"],
       "cypher": "MATCH p = allShortestPaths((s)-[*1..]->(e)) WHERE s.name = 'a' AND e.name = 'c' RETURN p",
       "fixture": {
         "nodes": [

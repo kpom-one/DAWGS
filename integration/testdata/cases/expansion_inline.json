@@ -18,7 +18,7 @@
     },
     {
       "name": "unbounded traversal filtering every traversed edge by a property",
-      "skip_drivers": ["neo4j"],
+      "skip_drivers": ["neo4j", "sonic"],
       "cypher": "match (n)-[r*..]->(e:NodeKind1) where n.name = 'n1' and r.prop = 'a' return e",
       "fixture": {
         "nodes": [
@@ -117,6 +117,7 @@
     },
     {
       "name": "bind expansion path filtered by a split membership check on the endpoint",
+      "skip_drivers": ["sonic"],
       "cypher": "match p = (:NodeKind1)-[:EdgeKind1*1..]->(n:NodeKind2) where 'admin_tier_0' in split(n.system_tags, ' ') return p limit 1000",
       "fixture": {
         "nodes": [

@@ -27,12 +27,12 @@ import (
 	"testing"
 
 	"github.com/specterops/dawgs"
+	"github.com/specterops/dawgs/drivers/neo4j"
 	"github.com/specterops/dawgs/drivers/pg"
+	"github.com/specterops/dawgs/drivers/sonic"
 	"github.com/specterops/dawgs/graph"
 	"github.com/specterops/dawgs/opengraph"
 	"github.com/specterops/dawgs/util/size"
-
-	"github.com/specterops/dawgs/drivers/neo4j"
 )
 
 var (
@@ -51,6 +51,8 @@ func driverFromConnStr(connStr string) (string, error) {
 		return pg.DriverName, nil
 	case neo4j.DriverName, "neo4j+s", "neo4j+ssc":
 		return neo4j.DriverName, nil
+	case sonic.DriverName:
+		return sonic.DriverName, nil
 	default:
 		return "", fmt.Errorf("unknown connection string scheme %q", u.Scheme)
 	}

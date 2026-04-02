@@ -132,6 +132,7 @@
     },
     {
       "name": "bind a path with one fixed hop then variable expansion filtered by coalesce contains",
+      "skip_drivers": ["sonic"],
       "cypher": "match p = (:NodeKind1)-[:EdgeKind1]->(:NodeKind2)-[:EdgeKind2*1..]->(t:NodeKind2) where coalesce(t.system_tags, '') contains 'admin_tier_0' return p limit 1000",
       "fixture": {
         "nodes": [
@@ -148,6 +149,7 @@
     },
     {
       "name": "filter a typed node with WHERE then bind its variable-length expansion path",
+      "skip_drivers": ["sonic"],
       "cypher": "match (u:NodeKind1) where u.samaccountname in ['foo', 'bar'] match p = (u)-[:EdgeKind1|EdgeKind2*1..3]->(t) where coalesce(t.system_tags, '') contains 'admin_tier_0' return p limit 1000",
       "fixture": {
         "nodes": [

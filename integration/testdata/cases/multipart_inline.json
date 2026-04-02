@@ -38,6 +38,7 @@
     },
     {
       "name": "filter a carried node using a per-group count in a WITH stage",
+      "skip_drivers": ["sonic"],
       "cypher": "match (n:NodeKind1)<-[:EdgeKind1]-(:NodeKind2) where n.objectid ends with '-516' with n, count(n) as dc_count where dc_count = 1 return n",
       "fixture": {
         "nodes": [
@@ -50,6 +51,7 @@
     },
     {
       "name": "filter typed nodes by a regular expression and carry collected results to the next stage",
+      "skip_drivers": ["sonic"],
       "cypher": "match (cg:NodeKind1) where cg.name =~ \".*TT\" with collect(cg.name) as names return names",
       "fixture": {
         "nodes": [

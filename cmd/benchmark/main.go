@@ -32,11 +32,12 @@ import (
 	"github.com/specterops/dawgs/util/size"
 
 	_ "github.com/specterops/dawgs/drivers/neo4j"
+	_ "github.com/specterops/dawgs/drivers/sonic"
 )
 
 func main() {
 	var (
-		driver       = flag.String("driver", "pg", "database driver (pg, neo4j)")
+		driver       = flag.String("driver", "pg", "database driver (pg, neo4j, sonic)")
 		connStr      = flag.String("connection", "", "database connection string (or PG_CONNECTION_STRING)")
 		iterations   = flag.Int("iterations", 10, "timed iterations per scenario")
 		output     = flag.String("output", "", "markdown output file (default: stdout)")
@@ -51,7 +52,7 @@ func main() {
 	if conn == "" {
 		conn = os.Getenv("PG_CONNECTION_STRING")
 	}
-	if conn == "" {
+	if conn == "" && *driver != "sonic" {
 		fatal("no connection string: set -connection flag or PG_CONNECTION_STRING env var")
 	}
 

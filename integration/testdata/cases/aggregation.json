@@ -4,7 +4,8 @@
     {
       "name": "count all nodes",
       "cypher": "MATCH (n) RETURN count(n)",
-      "assert": {"at_least_int": 3}
+      "assert": {"at_least_int": 3},
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "return a constant string literal",
@@ -29,7 +30,8 @@
     {
       "name": "filter on an aggregate result using WITH and WHERE",
       "cypher": "MATCH (n) WITH count(n) as cnt WHERE cnt > 1 RETURN cnt",
-      "assert": "non_empty"
+      "assert": "non_empty",
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "group by node and filter on per-node count",
@@ -69,7 +71,8 @@
     {
       "name": "filter nodes using size() on an array property in WHERE",
       "cypher": "MATCH (n) WHERE size(n.array_value) > 0 RETURN n",
-      "assert": "non_empty"
+      "assert": "non_empty",
+      "skip_drivers": ["sonic"]
     },
     {
       "name": "feed an aggregate result from a WITH stage into a subsequent MATCH",

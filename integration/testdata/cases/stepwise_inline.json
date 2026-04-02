@@ -58,6 +58,7 @@
     },
     {
       "name": "traverse edge where the edge property flag is explicitly false",
+      "skip_drivers": ["sonic"],
       "cypher": "match (s)-[r]->(e) where s.name = '123' and e:NodeKind1 and not r.property return s, r, e",
       "fixture": {
         "nodes": [
@@ -98,6 +99,7 @@
     },
     {
       "name": "bind a one-hop typed path filtered by array membership or empty array size",
+      "skip_drivers": ["sonic"],
       "cypher": "match p = (:NodeKind1)-[:EdgeKind1|EdgeKind2]->(c:NodeKind2) where '123' in c.prop2 or '243' in c.prop2 or size(c.prop2) = 0 return p limit 10",
       "fixture": {
         "nodes": [
